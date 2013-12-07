@@ -1,0 +1,88 @@
+#!/bin/bash
+# 2013 - fbarbeira
+#
+#  Pre-commit git hook que comprueba el codigo puppet y erb antes
+# de ser introducido en el repositorio.
+
+
+# Check sintaxis de ficheros puppet.
+echo -e "\e[01;34m==>\e[00m \e[01;37mRevision de sintaxis de manifests.\e[00m"
+for file in `git diff --name-only --cached | grep -E '\.(pp)'`
+do
+  if [[ -f $file ]]
+  then
+    num_files_p+=1
+    puppet parser validate $file
+    if [[ $? -ne 0 ]]
+    then
+      syntax_is_bad=1
+    else
+      echo "$file - OK"
+    fi
+  fi
+done
+if [[ num_files_p -eq 0 ]]
+then
+    echo "No manifests."
+fi
+echo ""
+
+# Check de estilo puppet.
+echo -e "\e[01;34m==>\e[00m \e[01;37mRevision de estilo de manifests.\e[00m"
+for file in `git diff --name-only --cached | grep -E '\.(pp)'`
+do
+  if [[ -f $file ]]
+  then
+    num_files_s+=1
+    puppet-lint --fail-on-warnings $file
+    if [[ $? -ne 0 ]]
+    then
+      syntax_is_bad=1
+    else
+      echo "$file - OK"
+    fi
+  fi
+done
+if [[ num_files_s -eq 0 ]]
+then
+    echo "No manifests."
+fi
+echo ""
+
+# Check sintaxis de templates.
+echo -e "\e[01;34m==>\e[00m \e[01;37mRevision de sintaxis de templates.\e[00m"
+for file in `git diff --name-only --cached | grep -E '\.erb'`
+do
+  if [[ -f $file ]]
+  then
+    num_files_t+=1
+    erb -x -P -T - | ruby -c
+    if [[ $? -ne 0 ]]
+    then
+      syntax_is_bad=1
+    else
+      echo "$file"
+    fi
+  fi
+done
+if [[ num_files_t -eq 0 ]]
+then
+  echo "No templates."
+fi
+echo ""
+
+
+
+if [[ $syntax_is_bad -eq 1 ]]
+then
+  echo "----------------------------"
+  echo -e "\e[01;31m\e[4mWarning\e[00m\e[24m: Revisa tu codigo de nuevo."
+  echo "Corrige los errores que se muestran arriba."
+  echo "Mientras no sea valido no podras añadirlo al repositorio."
+  echo "----------------------------"
+  exit 1
+else
+  echo "----------------------------"
+  echo -e "\e[00;32mCodigo valido.\e[00m"
+  echo "----------------------------"
+fi
