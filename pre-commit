@@ -1,6 +1,4 @@
 #!/bin/bash
-# 2013 - fbarbeira@dinahosting.com
-#
 #  Pre-commit git hook que comprueba el codigo puppet y erb antes
 # de ser introducido en el repositorio.
 
